@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Website Health Check</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            display: flex;
+        }
+        #healthChecker {
+            width: 100%;
+            padding: 20px;
+        }
+        #chartContainer {
+            width: 60%;
+            padding: 20px;
+        }
+        canvas {
+            max-width: 500px;
+            margin: 20px auto;
+        }
+    </style>
+</head>
+<body>
+    <div style="width: 40%; border-right: 1px solid #ccc; padding: 20px;">
+        <h2 style="text-align: center;">System Health Check</h2>
+        <div id="healthChecker">
+            Loading...
+        </div>
+    </div>
+    <div id="chartContainer">
+        <h2 style="text-align: center;">Response Time Charts</h2>
+        <div id="charts"></div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const healthChecker = document.getElementById('healthChecker');
+        const chartsContainer = document.getElementById('charts');
+        const websiteCharts = {}; // Store charts for each website
+
+        // Function to update system health display (if needed)
+        const updateSystemHealth = (healthData) => {
+            const { memoryUsage, cpuLoad, uptime } = healthData;
+            healthChecker.innerHTML = `
+                <strong>Memory Usage:</strong> ${JSON.stringify(memoryUsage)}<br/>
+                <strong>CPU Load:</strong> ${cpuLoad.join(', ')}<br/>
+                <strong>Uptime:</strong> ${uptime.toFixed(2)} seconds<br/><br/>
+            `;
+        };
+
+        const updateChart = (site, history, responseTimes) => {
+            const ctx = document.createElement('canvas');
+            ctx.id = site.replace(/https?:\/\//, '').replace(/\//g, '_'); 
+            chartsContainer.appendChild(ctx);
+    
+            const chart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: site,
+                        data: responseTimes.map((time, index) => ({
+                            x: index,  // Use the index as the x-axis value (time span)
+                            y: time,   // Response time as the y-axis value
+                            backgroundColor: history[index] === 1 ? 'green' : 'red' 
+                        })),
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        pointRadius: 5,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time Span (in checks)',
+                            },
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Response Time (ms)',
+                            },
+                            beginAtZero: true,
+                        }
+                    }
+                }
+            });
+
+            websiteCharts[site] = chart; // Store chart reference for later updates
+        };
+
+        const updateStatus = (site, history, responseTimes) => {
+        // Update the chart or create a new one if it doesn't exist
+            if (websiteCharts[site]) {
+                // Update existing chart data
+                websiteCharts[site].data.datasets[0].data = responseTimes.map((time, index) => ({
+                    x: index,
+                    y: time,
+                    backgroundColor: history[index] === 0 ? 'red' : 'green' // Red for unhealthy, green for healthy
+                }));
+                websiteCharts[site].update(); // Update the chart
+            } else {
+                // Create a new chart
+                updateChart(site, history, responseTimes);
+            }
+        };
+
+
+        socket.on('statusUpdate', ({ site, history, responseTimes }) => {
+            updateStatus(site, history, responseTimes);
+        });
+
+        // Listen for system health updates
+        socket.on('systemHealthUpdate', (healthData) => {
+            updateSystemHealth(healthData);
+        });
+    </script>
+</body>
+</html>
