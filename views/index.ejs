@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,118 +9,304 @@
     <style>
         body {
             display: flex;
-        }
-        #healthChecker {
-            width: 100%;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
             padding: 20px;
         }
+
+        #healthChecker {
+            width: 40%;
+            border-right: 1px solid #ccc;
+            padding: 20px;
+            margin-top: 10px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            /* Allow scrolling if content overflows */
+            height: 600px;
+            /* Fixed height to maintain layout */
+            position: sticky;
+            top: 40px;
+        }
+
         #chartContainer {
             width: 60%;
             padding: 20px;
         }
+
         canvas {
             max-width: 500px;
             margin: 20px auto;
         }
+
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        label {
+            font-size: 18px;
+            color: #555;
+            padding: 10px;
+        }
+
+        #url {
+            width: 80%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        #siteSubmit {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            background-color: #28a745;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #siteSubmit:hover {
+            background-color: #218838;
+        }
+
+        #websites-container {
+            background-color: #eee;
+            color: #444;
+            cursor: pointer;
+            padding: 18px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 15px;
+            transition: 0.4s;
+        }
+
+        .panel {
+            padding: 5px 18px;
+            display: none;
+            background-color: white;
+            overflow: hidden;
+        }
+
+        hr {
+            margin: 20px 0;
+            border: 1px solid #ccc;
+        }
     </style>
 </head>
+
 <body>
-    <div style="width: 40%; border-right: 1px solid #ccc; padding: 20px;">
-        <h2 style="text-align: center;">System Health Check</h2>
-        <div id="healthChecker">
-            Loading...
+    <div id="healthChecker">
+        <h2>System Health Check</h2>
+        <div id="systemHealthData">
+            <strong>Memory Usage:</strong> <span id="memoryUsage">
+                <%= systemHealth.memoryUsage %> bytes
+            </span><br />
+            <strong>CPU Load:</strong> <span id="cpuLoad">
+                <%= systemHealth.cpuLoad.join(', ') %></span><br />
+            <strong>Uptime:</strong> <span id="uptime"><%= systemHealth.uptime.toFixed(2) %> seconds</span><br /><br />
+        </div>
+        <hr>
+        <div>
+            <h3 style="text-align: center;">Site Health Check</h3>
+            <form id="siteHealthForm">
+                <label>Site:</label>
+                <input type="text" id="url" placeholder="Enter URL">
+                <button type="submit" id="siteSubmit">Check Health</button>
+            </form>
+        </div>
+        <hr>
+        <div>
+            <h3 style="text-align: center;">Sites Available</h3>
+            <div id="websites-container"></div> <!-- This div will hold the website names -->
+            <div class="panel"></div>
         </div>
     </div>
     <div id="chartContainer">
-        <h2 style="text-align: center;">Response Time Charts</h2>
+        <h2 style="position: sticky;top: 40px; background-color: #f4f4f4; height: 30px; top: 0; padding-bottom: 10px;">Response Time Charts</h2>
         <div id="charts"></div>
     </div>
 
+    
+
     <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
     <script>
         const socket = io();
         const healthChecker = document.getElementById('healthChecker');
         const chartsContainer = document.getElementById('charts');
         const websiteCharts = {}; // Store charts for each website
-
-        // Function to update system health display (if needed)
+    
+        // Function to update system health display
         const updateSystemHealth = (healthData) => {
             const { memoryUsage, cpuLoad, uptime } = healthData;
-            healthChecker.innerHTML = `
-                <strong>Memory Usage:</strong> ${JSON.stringify(memoryUsage)}<br/>
-                <strong>CPU Load:</strong> ${cpuLoad.join(', ')}<br/>
-                <strong>Uptime:</strong> ${uptime.toFixed(2)} seconds<br/><br/>
-            `;
-        };
-
-        const updateChart = (site, history, responseTimes) => {
-            const ctx = document.createElement('canvas');
-            ctx.id = site.replace(/https?:\/\//, '').replace(/\//g, '_'); 
-            chartsContainer.appendChild(ctx);
     
-            const chart = new Chart(ctx, {
-                type: 'scatter',
-                data: {
-                    datasets: [{
-                        label: site,
-                        data: responseTimes.map((time, index) => ({
-                            x: index,  // Use the index as the x-axis value (time span)
-                            y: time,   // Response time as the y-axis value
-                            backgroundColor: history[index] === 1 ? 'green' : 'red' 
-                        })),
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        pointRadius: 5,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Time Span (in checks)',
+            // Update the individual elements instead of replacing the entire innerHTML
+            document.getElementById('memoryUsage').textContent = `${memoryUsage} bytes`;
+            document.getElementById('cpuLoad').textContent = cpuLoad.join(', ');
+            document.getElementById('uptime').textContent = `${uptime.toFixed(2)} seconds`;
+        };
+    
+        // Function to create or update the chart for each website
+        const updateChart = (site, history, responseTimes) => {
+            // Create a new canvas for each site if it doesn't exist
+            if (!websiteCharts[site]) {
+                const canvas = document.createElement('canvas');
+                canvas.id = site.replace(/https?:\/\//, '').replace(/\//g, '_');
+                chartsContainer.appendChild(canvas);
+    
+                websiteCharts[site] = new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels: responseTimes.map((_, index) => `Check ${index + 1}`),
+                        datasets: [{
+                            label: site,
+                            data: responseTimes,
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            pointBackgroundColor: history.map(h => h === 1 ? 'green' : 'red'),
+                            fill: false,
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Checks',
+                                },
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Response Time (ms)',
+                                },
+                                beginAtZero: true,
                             },
                         },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Response Time (ms)',
-                            },
-                            beginAtZero: true,
-                        }
-                    }
-                }
-            });
-
-            websiteCharts[site] = chart; // Store chart reference for later updates
-        };
-
-        const updateStatus = (site, history, responseTimes) => {
-        // Update the chart or create a new one if it doesn't exist
-            if (websiteCharts[site]) {
-                // Update existing chart data
-                websiteCharts[site].data.datasets[0].data = responseTimes.map((time, index) => ({
-                    x: index,
-                    y: time,
-                    backgroundColor: history[index] === 0 ? 'red' : 'green' // Red for unhealthy, green for healthy
-                }));
-                websiteCharts[site].update(); // Update the chart
+                    },
+                });
             } else {
-                // Create a new chart
-                updateChart(site, history, responseTimes);
+                // Update existing chart data
+                const chart = websiteCharts[site];
+                chart.data.labels = responseTimes.map((_, index) => `Check ${index + 1}`);
+                chart.data.datasets[0].data = responseTimes;
+                chart.data.datasets[0].pointBackgroundColor = history.map(h => h === 1 ? 'green' : 'red');
+                chart.update(); // Update the chart with new data
             }
         };
-
-
+    
+        // Listen for status updates and update the charts
         socket.on('statusUpdate', ({ site, history, responseTimes }) => {
-            updateStatus(site, history, responseTimes);
+            updateChart(site, history, responseTimes);
         });
-
+    
         // Listen for system health updates
         socket.on('systemHealthUpdate', (healthData) => {
             updateSystemHealth(healthData);
         });
+    
+        // Fetch websites from the API
+        const fetchWebsites = async () => {
+            try {
+                const response = await axios.get('/websites'); // Use axios to fetch from the API
+                const websites = response.data; // Get data directly from the response
+    
+                console.log(response, "Fetched websites:");
+                
+                const container = document.getElementById('websites-container');
+                // Clear the container before adding new websites
+                container.innerHTML = '';
+    
+                // Create a div for each website URL
+                websites.forEach(url => {
+                    const mainWrapper = ''
+                    const websiteDiv = document.createElement('div');
+                    const websiteAccordianPanel =  document.createElement('div');
+                    websiteDiv.textContent = url; // Display the URL
+                    websiteDiv.id=String(url);
+                    websiteAccordianPanel.id = `accord-${url}`; // set accordian id
+                    websiteAccordianPanel.style = 'display: block, height:  100px, width: 500px, background: #008080 ';
+                    websiteDiv.addEventListener('click', (Event) => {
+                        console.log("==>  ", Event.target.id);
+                        // handleAccordian(String(url))
+                        websiteAccordianPanel.style = 'display: none';
+                        conso
+                    })
+                    container.appendChild(websiteDiv); // Append to the container
+                    container.appendChild(websiteAccordianPanel); // Append to the container
+                });
+            } catch (error) {
+                console.error('Error fetching websites:', error.response ? error.response.data.message : error.message);
+            }
+        };
+    
+        // Call the fetchWebsites function on page load
+        fetchWebsites();
+    
+        // Handling form submission to check website health
+        document.getElementById('siteHealthForm').addEventListener('submit', async (event) => {
+            event.preventDefault(); // Prevent form submission reload
+    
+            const urlInput = document.getElementById('url').value; // Get the URL from the input field
+    
+            try {
+                // Make an HTTP POST request to the server to add the website
+                const response = await axios.post('/websites', { url: urlInput });
+    
+                // Check if the site was successfully added
+                if (response.status === 201) {
+                    console.log('Website added successfully:', response.data.url);
+                    alert('Website added successfully!');
+                    fetchWebsites(); // Refresh the website list after adding
+                } else {
+                    console.error('Failed to add website:', response.data.message);
+                    alert('Failed to add website: ' + response.data.message);
+                }
+            } catch (error) {
+                console.error('Error adding website:', error.response ? error.response.data.message : error.message);
+                alert('Error adding website: ' + (error.response ? error.response.data.message : error.message));
+            }
+        });
     </script>
+
+
+    <!-- <script>
+        function handleAccordian(url) {
+            console.log("url to open :: ", url)
+            var acc = document.getElementsByClassName("accordion");
+            var i;
+            for (i = 0; i < acc.length; i++) {
+                acc[i].addEventListener("click", function() {
+                    this.classList.toggle("active");
+                    var panel = this.nextElementSibling;
+                    if (panel.style.display === "block") {
+                        panel.style.display = "none";
+                    } else {
+                        panel.style.display = "block";
+                    }
+                });
+            }
+        }
+    </script> -->
 </body>
+
 </html>
+
+<!-- ///////////////////////////////////////////////////////////////////////// -->
