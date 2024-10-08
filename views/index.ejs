@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Website Health Check</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
+    <!-- <link rel="stylesheet" href="./style.css"> -->
+     <style>
         body {
             display: flex;
             font-family: Arial, sans-serif;
@@ -88,7 +89,7 @@
             color: #444;
             cursor: pointer;
             padding: 18px;
-            width: 100%;
+            width: 90%;
             border: none;
             text-align: left;
             outline: none;
@@ -107,7 +108,7 @@
             margin: 20px 0;
             border: 1px solid #ccc;
         }
-    </style>
+    </style> 
 </head>
 
 <body>
@@ -224,39 +225,52 @@
     
         // Fetch websites from the API
         const fetchWebsites = async () => {
-            try {
-                const response = await axios.get('/websites'); // Use axios to fetch from the API
-                const websites = response.data; // Get data directly from the response
-    
-                console.log(response, "Fetched websites:");
-                
-                const container = document.getElementById('websites-container');
-                // Clear the container before adding new websites
-                container.innerHTML = '';
-    
-                // Create a div for each website URL
-                websites.forEach(url => {
-                    const mainWrapper = ''
-                    const websiteDiv = document.createElement('div');
-                    const websiteAccordianPanel =  document.createElement('div');
-                    websiteDiv.textContent = url; // Display the URL
-                    websiteDiv.id=String(url);
-                    websiteAccordianPanel.id = `accord-${url}`; // set accordian id
-                    websiteAccordianPanel.style = 'display: block, height:  100px, width: 500px, background: #008080 ';
-                    websiteDiv.addEventListener('click', (Event) => {
-                        console.log("==>  ", Event.target.id);
-                        // handleAccordian(String(url))
-                        websiteAccordianPanel.style = 'display: none';
-                        conso
-                    })
-                    container.appendChild(websiteDiv); // Append to the container
-                    container.appendChild(websiteAccordianPanel); // Append to the container
-                });
-            } catch (error) {
-                console.error('Error fetching websites:', error.response ? error.response.data.message : error.message);
-            }
-        };
-    
+    try {
+        const response = await axios.get('/websites'); // Use axios to fetch from the API
+        const websites = response.data; // Get data directly from the response
+
+        console.log(response, "Fetched websites:");
+
+        const container = document.getElementById('websites-container');
+        // Clear the container before adding new websites
+        container.innerHTML = '';
+
+        // Create a div for each website URL
+        websites.forEach(url => {
+            // Create main div for the website
+            const websiteDiv = document.createElement('div');
+            websiteDiv.textContent = url; // Display the URL
+            websiteDiv.id = String(url);
+            websiteDiv.classList.add('website-item'); // Add a class for styling
+
+            // Create accordion panel for the website
+            const websiteAccordianPanel = document.createElement('div');
+            websiteAccordianPanel.id = `accord-${url}`; // Set accordion id
+            websiteAccordianPanel.style.display = 'none'; // Initially hide the panel
+            websiteAccordianPanel.style.height = '100px';
+            websiteAccordianPanel.style.width = '500px';
+            websiteAccordianPanel.style.background = '#008080';
+            websiteAccordianPanel.style.color = 'white'; // Optional: Change text color for better visibility
+            websiteAccordianPanel.textContent = `Details about ${url}`; // Add some content or placeholder text
+
+            // Event listener to toggle accordion visibility
+            websiteDiv.addEventListener('click', () => {
+                const isDisplayed = websiteAccordianPanel.style.display === 'block';
+                websiteAccordianPanel.style.display = isDisplayed ? 'none' : 'block'; // Toggle visibility
+            });
+
+            // Append to the container
+            container.appendChild(websiteDiv);
+            container.appendChild(websiteAccordianPanel);
+        });
+    } catch (error) {
+        console.error('Error fetching websites:', error.response ? error.response.data.message : error.message);
+    }
+};
+
+// Call the fetchWebsites function on page load
+fetchWebsites();
+
         // Call the fetchWebsites function on page load
         fetchWebsites();
     
@@ -306,7 +320,6 @@
         }
     </script> -->
 </body>
-
 </html>
 
 <!-- ///////////////////////////////////////////////////////////////////////// -->
