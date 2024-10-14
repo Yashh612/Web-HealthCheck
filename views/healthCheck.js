@@ -1,7 +1,6 @@
 
 document.addEventListener("DOMContentLoaded", (event) => {
 
-
 	const socket = io();
 	const healthChecker = document.getElementById('healthChecker');
 	const chartsContainer = document.getElementById('charts');
@@ -18,14 +17,23 @@ document.addEventListener("DOMContentLoaded", (event) => {
 	};
 
 	// Function to create or update the chart for each website
-	const updateChart = (site, history, responseTimes) => {
+	const updateChart = (site, history, responseTimes, index) => {
 		// Create a new canvas for each site if it doesn't exist
 		if (!websiteCharts[site]) {
+			const chartContainer = document.createElement('div');
+			chartContainer.classList.add('bg-white', 'rounded-lg', 'h-fit', 'w-[49%]'); // Background and padding for each chart
+			chartContainer.draggable = true; // Make chart container draggable
+			chartContainer.setAttribute('data-index', index); // Assign data-index for tracking
+	
 			const canvas = document.createElement('canvas');
 			canvas.id = site.replace(/https?:\/\//, '').replace(/\//g, '_');
-			// canvas.classList = ;
-			chartsContainer.appendChild(canvas);
-
+			canvas.style.width = '100%';
+			canvas.style.height = '250px';
+	
+			chartContainer.appendChild(canvas);
+			chartsContainer.appendChild(chartContainer);
+	
+			// Initialize the chart
 			websiteCharts[site] = new Chart(canvas, {
 				type: 'line',
 				data: {
@@ -46,7 +54,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
 						x: {
 							title: {
 								display: true,
-								text: 'Checks',
+								text: 'Monitor',
 							},
 						},
 						y: {
@@ -59,6 +67,22 @@ document.addEventListener("DOMContentLoaded", (event) => {
 					},
 				},
 			});
+	
+			// Drag-and-drop handlers for charts
+			chartContainer.addEventListener('dragstart', (e) => {
+				e.dataTransfer.setData('text/plain', index); // Set the index as drag data
+			});
+	
+			chartContainer.addEventListener('dragover', (e) => {
+				e.preventDefault(); // Allow dropping
+			});
+	
+			chartContainer.addEventListener('drop', (e) => {
+				e.preventDefault();
+				const draggedIndex = e.dataTransfer.getData('text/plain'); // Get the dragged index from dataTransfer
+				const targetIndex = chartContainer.getAttribute('data-index'); // Get the target index from the container's data attribute
+				reorderCharts(draggedIndex, targetIndex); // Call reorder function
+			});
 		} else {
 			// Update existing chart data
 			const chart = websiteCharts[site];
@@ -68,7 +92,30 @@ document.addEventListener("DOMContentLoaded", (event) => {
 			chart.update(); // Update the chart with new data
 		}
 	};
-
+	
+	const reorderCharts = (fromIndex, toIndex) => {
+		const fromIndexInt = parseInt(fromIndex, 10); // Convert to integer
+		const toIndexInt = parseInt(toIndex, 10); // Convert to integer
+	
+		const chartElements = Array.from(chartsContainer.children); // Get all chart containers as an array
+		const movedChart = chartElements[fromIndexInt]; // Get the dragged chart container
+	
+		// Remove the dragged element and insert it before the target index
+		chartsContainer.removeChild(movedChart);
+		
+		// Insert before the correct target or at the end if toIndex is the last element
+		if (toIndexInt >= chartElements.length) {
+			chartsContainer.appendChild(movedChart);
+		} else {
+			chartsContainer.insertBefore(movedChart, chartElements[toIndexInt]);
+		}
+	
+		// Update the data-index attribute for all chart containers after reordering
+		Array.from(chartsContainer.children).forEach((child, i) => {
+			child.setAttribute('data-index', i);
+		});
+	};
+	
 	// Listen for status updates and update the charts
 	socket.on('statusUpdate', ({ site, history, responseTimes }) => {
 		updateChart(site, history, responseTimes);
@@ -96,40 +143,32 @@ document.addEventListener("DOMContentLoaded", (event) => {
 		});
 	});
 
-	// Fetch websites from the API
+
 	const fetchWebsites = async () => {
 		try {
 			const response = await axios.get('/websites'); // Use axios to fetch from the API
 			const websites = response.data; // Get data directly from the response
 
-			console.log(response, "Fetched websites:");
-
 			const container = document.getElementById('websites-container');
-			// Clear the container before adding new websites
-			container.innerHTML = '';
-
-			// Create a div for each website URL
-			// Assuming you have already included Axios in your project
-
-			// Assuming you have already included Axios in your project
+			container.innerHTML = ''; // Clear the container before adding new websites
 
 			// Function to render websites
 			const renderWebsites = () => {
-				// Clear the container before re-rendering
-				container.innerHTML = '';
+				container.innerHTML = ''; // Clear the container before re-rendering
 
 				// Render each website
-				websites.forEach(url => {
+				websites.forEach((url, index) => {
 					// Create a wrapper div for better layout control
 					const websiteWrapper = document.createElement('div');
 					websiteWrapper.style.display = 'flex'; // Use flexbox for alignment
 					websiteWrapper.style.alignItems = 'center'; // Center items vertically
 					websiteWrapper.style.marginBottom = '10px'; // Add space between items
+					websiteWrapper.draggable = true; // Make it draggable
+					websiteWrapper.id = `website-${index}`; // Assign unique ID
 
 					// Create main div for the website
 					const websiteDiv = document.createElement('div');
 					websiteDiv.textContent = url;
-					websiteDiv.id = String(url);
 					websiteDiv.classList.add('website-item'); // Add a class for styling
 					websiteDiv.style.flexGrow = '1'; // Allow the website div to grow and take available space
 
@@ -137,37 +176,30 @@ document.addEventListener("DOMContentLoaded", (event) => {
 					const deleteButton = document.createElement('button');
 					deleteButton.textContent = 'Delete'; // Set button text
 					deleteButton.classList.add('delete-button'); // Add a class for styling
+					// Add styles for delete button
+					deleteButton.style.backgroundColor = 'red';
+					deleteButton.style.color = 'white';
+					deleteButton.style.border = 'none';
+					deleteButton.style.padding = '5px 10px';
+					deleteButton.style.marginLeft = '10px';
+					deleteButton.style.cursor = 'pointer';
+					deleteButton.style.borderRadius = '4px';
+					deleteButton.style.fontWeight = 'bold';
 
-					// Style the delete button
-					deleteButton.style.backgroundColor = 'red'; // Set background color to red
-					deleteButton.style.color = 'white'; // Set text color to white
-					deleteButton.style.border = 'none'; // Remove border
-					deleteButton.style.padding = '5px 10px'; // Add some padding
-					deleteButton.style.marginLeft = '10px'; // Add margin to separate it from the website div
-					deleteButton.style.cursor = 'pointer'; // Change cursor on hover
-					deleteButton.style.borderRadius = '4px'; // Rounded corners
-					deleteButton.style.fontWeight = 'bold'; // Bold text
-
-					// Function to handle deletion using Axios
+					// Function to handle deletion
 					const deleteWebsite = async (websiteUrl) => {
-						console.log(`Attempting to delete website: ${websiteUrl}`); // Debugging log
 						try {
 							const response = await axios.delete('/websites', {
 								headers: {
-									'Content-Type': 'application/json' // Set the Content-Type header
+									'Content-Type': 'application/json'
 								},
 								data: {
-									url: websiteUrl // Send the URL in the request body
+									url: websiteUrl
 								}
 							});
-							console.log('Response:', response); // Debugging log
 							if (response.status === 200) {
-								console.log('Website deleted successfully:', websiteUrl);
-								// Remove the website from the array
 								websites.splice(websites.indexOf(websiteUrl), 1);
-								window.location.reload();
-								// Re-render the websites
-								renderWebsites();
+								renderWebsites(); // Re-render websites after deletion
 							} else {
 								console.error('Failed to delete the website:', response.statusText);
 							}
@@ -178,34 +210,77 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
 					// Add event listener to delete button
 					deleteButton.addEventListener('click', (event) => {
-						event.stopPropagation(); // Prevent the click from triggering the accordion toggle
+						event.stopPropagation(); // Prevent the click from triggering other events
 						deleteWebsite(url);
 					});
 
 					// Create accordion panel for the website
 					const websiteAccordianPanel = document.createElement('div');
-					websiteAccordianPanel.id = `accord-${url}`; // Set accordion id
-					websiteAccordianPanel.style.display = 'none'; // Initially hide the panel
+					websiteAccordianPanel.id = `accord-${url}`;
+					websiteAccordianPanel.style.display = 'none';
 					websiteAccordianPanel.style.height = '100px';
-					websiteAccordianPanel.style.width = '480px';
+					websiteAccordianPanel.style.width = '466px';
 					websiteAccordianPanel.style.background = 'white';
 					websiteAccordianPanel.style.color = 'black';
-					websiteAccordianPanel.textContent = `Details about ${url}`; // Placeholder text
+					websiteAccordianPanel.style.border = '1px solid #ccc';
+					websiteAccordianPanel.style.marginBottom = '10px';
+					websiteAccordianPanel.textContent = `Details about ${url}`;
 
-					// Event listener to toggle accordion visibility
+					// Toggle accordion panel
 					websiteDiv.addEventListener('click', () => {
-						const isDisplayed = websiteAccordianPanel.style.display === 'block';
-						websiteAccordianPanel.style.display = isDisplayed ? 'none' : 'block'; // Toggle visibility
+						websiteAccordianPanel.style.display = websiteAccordianPanel.style.display === 'block' ? 'none' : 'block';
 					});
 
-					// Append website div, delete button, and accordion panel to the wrapper
+					// Drag and Drop Handlers
+					websiteWrapper.addEventListener('dragstart', (e) => {
+						e.dataTransfer.setData('text/plain', index); // Set the index as drag data
+					});
+
+					websiteWrapper.addEventListener('dragover', (e) => {
+						e.preventDefault(); // Allow dropping
+					});
+
+					websiteWrapper.addEventListener('drop', (e) => {
+						e.preventDefault();
+						const draggedIndex = e.dataTransfer.getData('text/plain'); // Get the dragged index
+						const targetIndex = index; // The target index of the drop
+						reorderWebsites(draggedIndex, targetIndex); // Call reorder function
+					});
+
+					// Append elements to the wrapper and container
 					websiteWrapper.appendChild(websiteDiv);
-					websiteWrapper.appendChild(deleteButton); // Append the delete button
-					container.appendChild(websiteWrapper); // Append the wrapper to the container
-					container.appendChild(websiteAccordianPanel); // Append the accordion panel to the container
+					websiteWrapper.appendChild(deleteButton);
+					container.appendChild(websiteWrapper);
+					container.appendChild(websiteAccordianPanel);
 				});
 			};
 
+			// Function to reorder websites array and re-render
+			const reorderWebsites = (fromIndex, toIndex) => {
+				if (fromIndex === toIndex) return; // If the dragged and dropped positions are the same, do nothing
+			
+				// Get the item being moved
+				const movedWebsite = websites[fromIndex];
+			
+				// Remove the item from its original position
+				websites.splice(fromIndex, 1);
+			
+				// Insert the item at the new position
+				if (fromIndex < toIndex) {
+					// If moving down, insert at the new position after removal
+					websites.splice(toIndex, 0, movedWebsite);
+				} else {
+					// If moving up, insert before the target index
+					websites.splice(toIndex, 0, movedWebsite);
+				}
+			
+				// Re-render the websites after the reorder
+				renderWebsites();
+			
+				// If you have a reorderCharts function, call it here
+				reorderCharts(fromIndex, toIndex);
+			};
+			
 			// Initial call to render websites when the page loads
 			renderWebsites();
 
@@ -216,6 +291,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
 	// Call the fetchWebsites function on page load
 	fetchWebsites();
+
 
 	// Handling form submission to check website health
 	document.getElementById('siteHealthForm').addEventListener('submit', async (event) => {
@@ -231,7 +307,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
 			if (response.status === 201) {
 				console.log('Website added successfully:', response.data.url);
 				alert('Website added successfully!');
+				document.getElementById('url').value = '';
 				fetchWebsites(); // Refresh the website list after adding
+
 			} else {
 				console.error('Failed to add website:', response.data.message);
 				alert('Failed to add website: ' + response.data.message);
@@ -242,5 +320,5 @@ document.addEventListener("DOMContentLoaded", (event) => {
 		}
 	});
 
-	console.log("DOM fully loaded and parsed");
+
 });
