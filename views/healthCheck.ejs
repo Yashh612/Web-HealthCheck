@@ -6,21 +6,36 @@
     <title>Zestgeek APM Checks</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/js/all.min.js" integrity="sha512-6sSYJqDreZRZGkJ3b+YfdhB3MzmuP9R7X1QZ6g5aIXhRvR1Y/N/P47jmnkENm7YL3oqsmI6AK+V6AD99uWDnIw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
-    <div class="flex flex-col font-sans bg-gray-200 p-5">
+    <div class="flex flex-col font-sans bg-[#f3f4f6] p-5">
         <div class="flex flex-row min-h-screen">
-            <div class="w-[35%] sticky top-10  h-fit z-10 border-4 border-double border-[#52c0c0] p-2">
-                <h3 class="text-[20px] text-center my-5 text-black font-bold">
+            <div class="w-[35%] sticky top-10  h-fit z-10 border-4 border-double border-[#52c0c0] p-2 shadow-lg shadow-[#e5e7eb]">
+                <h3 class="text-[20px] text-center my-5 text-[#1e3a8a] font-bold">
                     Application Monitoring System
                 </h3>
-                <div class="bg-white border border-bottom">
-                    <strong>Memory Usage:</strong> <span id="memoryUsage">
-                        <%= systemHealth.memoryUsage %> bytes
+                <div class="bg-[#E5F6FD] border border-bottom py-2 px-1 box-shadow">
+                    <strong>Total Memory:</strong> 
+                    <span id="memoryUsage" class="text-[#2C3E50]">
+                        <%= systemHealth.totalMemory %> KB
                     </span><br />
-                    <strong>CPU Load:</strong> <span id="cpuLoad">
-                        <%= systemHealth.cpuLoad.join(', ') %></span><br />
-                    <strong>Uptime:</strong> <span id="uptime"><%= systemHealth.uptime.toFixed(2) %> seconds</span><br /><br />
+                    <strong>Free Memory:</strong> 
+                    <span id="memoryUsage" class="text-[#2C3E50]">
+                        <%= systemHealth.freeMemory %> KB
+                    </span><br />
+                    <strong>Memory Usage:</strong> 
+                        <span id="memoryUsage" class="text-[#2C3E50]">
+                            <%= systemHealth.memoryUsage %> KB
+                        </span><br />
+                    <strong>CPU Load:</strong> 
+                        <span id="cpuLoad" class="text-[#2C3E50]">
+                            <%= systemHealth.cpuLoad.join(', ') %>
+                        </span><br />
+                    <strong>Uptime:</strong> 
+                        <span id="uptime" class="text-[#2C3E50]">
+                            <%= systemHealth.uptime.toFixed(2) %> seconds
+                        </span><br /><br />
                 </div>
                 <div class="w-full py-5"> <!-- site List -->
                     <%- include('siteList'); %>
@@ -28,8 +43,7 @@
             </div>
             <div class="w-[65%]">
                 <div class="flex flex-row justify-between" >
-                    <!-- <%- include('GraphCanvas'); %> -->
-            <div class="h-fit flex flex-row flex-wrap gap-4 p-4 items-center w-full " id="charts">
+                    <div class="h-fit flex flex-row flex-wrap gap-4 p-4 items-center w-full " id="charts">
                         <!-- canvas div will be placed here - dynamically -->
                     </div>
                 </div>

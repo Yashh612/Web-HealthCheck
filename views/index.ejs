@@ -68,18 +68,21 @@
     <div class="flex flex-col bg-red-300 w-1/3">
         <h2 class="h-[50px] bg-indigo-200 text-center text-xl font-bold pt-2">System Health Check</h2>
         <div class="py-4 px-4 bg-red-300">
-            <strong>Memory Usage:</strong> <span id="memoryUsage">
+            <strong>Memory Usage:</strong> 
+            <span id="memoryUsage" class="text-teal-400">
                 <%= systemHealth.memoryUsage %> bytes
             </span><br />
-            <strong>CPU Load:</strong> <span id="cpuLoad">
-                <%= systemHealth.cpuLoad.join(', ') %></span><br />
-            <strong>Uptime:</strong> <span id="uptime"><%= systemHealth.uptime.toFixed(2) %> seconds</span><br /><br />
-        </div><hr>
+            <strong>CPU Load:</strong> 
+                <span id="cpuLoad" class="text-[#52c0c0]">
+                    <%= systemHealth.cpuLoad.join(', ') %>
+                </span><br />
+            <strong>Uptime:</strong> 
+                <span id="uptime" class="text-[#52c0c0]">
+                    <%= systemHealth.uptime.toFixed(2) %> seconds
+                </span><br /><br />
+        </div>
         <div>
-            <%- include('siteForm'); %>
-        </div><hr>
-        <div>
-            
+            <%- include('siteList'); %>
         </div>
     </div>
     <div class="flex flex-row gap-2 bg-indigo-200 w-2/3">

@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
 		const { memoryUsage, cpuLoad, uptime } = healthData;
 
 		// Update the individual elements instead of replacing the entire innerHTML
-		document.getElementById('memoryUsage').textContent = `${memoryUsage} bytes`;
+		document.getElementById('memoryUsage').textContent = `${memoryUsage} KB`;
 		document.getElementById('cpuLoad').textContent = cpuLoad.join(', ');
 		document.getElementById('uptime').textContent = `${uptime.toFixed(2)} seconds`;
 	};
@@ -97,23 +97,56 @@ document.addEventListener("DOMContentLoaded", (event) => {
 		const fromIndexInt = parseInt(fromIndex, 10); // Convert to integer
 		const toIndexInt = parseInt(toIndex, 10); // Convert to integer
 	
-		const chartElements = Array.from(chartsContainer.children); // Get all chart containers as an array
-		const movedChart = chartElements[fromIndexInt]; // Get the dragged chart container
+		// Get all chart containers as an array before removing the moved chart
+		let chartElements = Array.from(chartsContainer.children);
 	
-		// Remove the dragged element and insert it before the target index
+		// Check if indices are valid and within bounds
+		if (fromIndexInt < 0 || fromIndexInt >= chartElements.length || toIndexInt < 0) {
+			console.error(`Invalid index values: fromIndex = ${fromIndexInt}, toIndex = ${toIndexInt}`);
+			return;
+		}
+	
+		// Get the chart being moved
+		const movedChart = chartElements[fromIndexInt]; 
+	
+		// Check if movedChart exists to prevent errors
+		if (!movedChart) {
+			console.error(`Chart at index ${fromIndexInt} not found.`);
+			return;
+		}
+	
+		// Remove the dragged element from its current position
 		chartsContainer.removeChild(movedChart);
-		
-		// Insert before the correct target or at the end if toIndex is the last element
+	
+		// Re-fetch the chart elements array after removal to update their positions
+		chartElements = Array.from(chartsContainer.children);
+	
+		// Insert it before the target index or at the end if it's the last item
 		if (toIndexInt >= chartElements.length) {
+			// Append if the index is beyond the last element
 			chartsContainer.appendChild(movedChart);
 		} else {
-			chartsContainer.insertBefore(movedChart, chartElements[toIndexInt]);
+			// Ensure that the target index exists before inserting
+			const targetChart = chartElements[toIndexInt];
+			if (targetChart) {
+				chartsContainer.insertBefore(movedChart, targetChart);
+			} else {
+				console.error(`Target chart at index ${toIndexInt} not found.`);
+			}
 		}
+	
+		// Log the new order of chart elements (for debugging purposes)
+		console.log('Chart Elements After Move:', Array.from(chartsContainer.children));
 	
 		// Update the data-index attribute for all chart containers after reordering
 		Array.from(chartsContainer.children).forEach((child, i) => {
 			child.setAttribute('data-index', i);
 		});
+	
+		// Optional: If there are layout or rendering issues, trigger a slight delay for layout refresh
+		setTimeout(() => {
+			console.log("Reordering completed.");
+		}, 100);
 	};
 	
 	// Listen for status updates and update the charts
@@ -135,10 +168,13 @@ document.addEventListener("DOMContentLoaded", (event) => {
 			if (panel) {
 				// Update the panel's text content with the received health data
 				panel.innerHTML = `
-                <strong>Details about ${site}</strong><br />
-                <strong>Memory Usage:</strong> <span id="memoryUsage">${memoryUsage} bytes</span><br />
-                <strong>Uptime:</strong> <span id="uptime">${uptime.toFixed(2)} seconds</span><br />
-                <strong>Health Status:</strong> <span id="healthStatus">${healthStatus === 1 ? 'Healthy' : 'Unhealthy'}</span><br /><br />`;
+                <strong>Visit : <a class="text-[#3b82f6] underline underline-offset-1" href="${site}">${site}</a></strong><br />
+                <strong>Memory Usage:</strong> <span id="memoryUsage" class="text-[#374151]">${memoryUsage} bytes</span><br />
+                <strong>Uptime:</strong> <span id="uptime" class="text-[#374151]">${uptime.toFixed(2)} seconds</span><br />
+                <strong>Health Status:</strong> 
+				<span id="healthStatus" class="${healthStatus === 1 ? 'text-[#2ECC71]' : 'text-[#E74C3C]'} font-bold">
+					${healthStatus === 1 ? 'Healthy' : 'Unhealthy'}
+				</span><br /><br />`;
 			}
 		});
 	});
@@ -146,45 +182,52 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
 	const fetchWebsites = async () => {
 		try {
-			const response = await axios.get('/websites'); // Use axios to fetch from the API
-			const websites = response.data; // Get data directly from the response
+			const response = await axios.get('/websites'); 
+			const websites = response.data; 
 
 			const container = document.getElementById('websites-container');
 			container.innerHTML = ''; // Clear the container before adding new websites
 
 			// Function to render websites
 			const renderWebsites = () => {
-				container.innerHTML = ''; // Clear the container before re-rendering
+				container.innerHTML = ''; 
 
 				// Render each website
 				websites.forEach((url, index) => {
 					// Create a wrapper div for better layout control
 					const websiteWrapper = document.createElement('div');
-					websiteWrapper.style.display = 'flex'; // Use flexbox for alignment
-					websiteWrapper.style.alignItems = 'center'; // Center items vertically
-					websiteWrapper.style.marginBottom = '10px'; // Add space between items
-					websiteWrapper.draggable = true; // Make it draggable
-					websiteWrapper.id = `website-${index}`; // Assign unique ID
+					websiteWrapper.style.display = 'flex'; 
+					websiteWrapper.style.alignItems = 'center'; 
+					websiteWrapper.style.marginBottom = '10px'; 
+					websiteWrapper.draggable = true; 
+					websiteWrapper.id = `website-${index}`;
+
+					const dragIcon = document.createElement('img');
+					dragIcon.src = 'https://cdn-icons-png.flaticon.com/256/8950/8950785.png'; 
+					dragIcon.alt = 'Drag icon';
+					dragIcon.style.width = '20px'; 
+					dragIcon.style.marginRight = '5px';
 
 					// Create main div for the website
 					const websiteDiv = document.createElement('div');
 					websiteDiv.textContent = url;
-					websiteDiv.classList.add('website-item'); // Add a class for styling
-					websiteDiv.style.flexGrow = '1'; // Allow the website div to grow and take available space
+					websiteDiv.style.color = '#2C3E50'
+					websiteDiv.classList.add('website-item'); 
+					websiteDiv.style.flexGrow = '1';
 
-					// Create delete button
-					const deleteButton = document.createElement('button');
-					deleteButton.textContent = 'Delete'; // Set button text
-					deleteButton.classList.add('delete-button'); // Add a class for styling
-					// Add styles for delete button
-					deleteButton.style.backgroundColor = 'red';
-					deleteButton.style.color = 'white';
-					deleteButton.style.border = 'none';
-					deleteButton.style.padding = '5px 10px';
-					deleteButton.style.marginLeft = '10px';
-					deleteButton.style.cursor = 'pointer';
-					deleteButton.style.borderRadius = '4px';
-					deleteButton.style.fontWeight = 'bold';
+					const deleteButtonContainer = document.createElement('div');
+					deleteButtonContainer.id = url; 
+					deleteButtonContainer.style.display = 'flex'; 
+					deleteButtonContainer.style.alignItems = 'center'; 
+					deleteButtonContainer.style.justifyContent = 'flex-end';
+
+					// Create delete icon
+					const deleteButton = document.createElement('i');
+					deleteButton.className = 'fa fa-trash'; 
+					deleteButton.style.color = '#E74C3C';
+					deleteButton.style.margin = '0 5px'
+					deleteButton.style.cursor = 'pointer'; 
+					deleteButton.width = '20px';
 
 					// Function to handle deletion
 					const deleteWebsite = async (websiteUrl) => {
@@ -199,19 +242,19 @@ document.addEventListener("DOMContentLoaded", (event) => {
 							});
 							if (response.status === 200) {
 								websites.splice(websites.indexOf(websiteUrl), 1);
-								renderWebsites(); // Re-render websites after deletion
+								renderWebsites(); 
 							} else {
 								console.error('Failed to delete the website:', response.statusText);
 							}
 						} catch (error) {
 							console.error('Error deleting the website:', error.response ? error.response.data : error.message);
 						}
-					};
-
-					// Add event listener to delete button
-					deleteButton.addEventListener('click', (event) => {
+					};				
+	
+					// Add event listener to delete icon
+					deleteButtonContainer.addEventListener('click', async (event) => {
 						event.stopPropagation(); // Prevent the click from triggering other events
-						deleteWebsite(url);
+						await deleteWebsite(url); // Ensure you wait for the deletion to complete
 					});
 
 					// Create accordion panel for the website
@@ -221,6 +264,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
 					websiteAccordianPanel.style.height = '100px';
 					websiteAccordianPanel.style.width = '466px';
 					websiteAccordianPanel.style.background = 'white';
+					websiteAccordianPanel.style.padding = '5px 10px'
 					websiteAccordianPanel.style.color = 'black';
 					websiteAccordianPanel.style.border = '1px solid #ccc';
 					websiteAccordianPanel.style.marginBottom = '10px';
@@ -230,14 +274,13 @@ document.addEventListener("DOMContentLoaded", (event) => {
 					websiteDiv.addEventListener('click', () => {
 						websiteAccordianPanel.style.display = websiteAccordianPanel.style.display === 'block' ? 'none' : 'block';
 					});
-
-					// Drag and Drop Handlers
+	
 					websiteWrapper.addEventListener('dragstart', (e) => {
-						e.dataTransfer.setData('text/plain', index); // Set the index as drag data
+						e.dataTransfer.setData('text/plain', index);
 					});
 
 					websiteWrapper.addEventListener('dragover', (e) => {
-						e.preventDefault(); // Allow dropping
+						e.preventDefault(); 
 					});
 
 					websiteWrapper.addEventListener('drop', (e) => {
@@ -248,16 +291,20 @@ document.addEventListener("DOMContentLoaded", (event) => {
 					});
 
 					// Append elements to the wrapper and container
+					websiteWrapper.appendChild(dragIcon);
 					websiteWrapper.appendChild(websiteDiv);
-					websiteWrapper.appendChild(deleteButton);
+					// websiteWrapper.appendChild(deleteButton);
+					deleteButtonContainer.appendChild(deleteButton);
+					console.log('Delete button created for URL:', url);
+					websiteWrapper.appendChild(deleteButtonContainer);
 					container.appendChild(websiteWrapper);
 					container.appendChild(websiteAccordianPanel);
-				});
+				});				
 			};
 
 			// Function to reorder websites array and re-render
 			const reorderWebsites = (fromIndex, toIndex) => {
-				if (fromIndex === toIndex) return; // If the dragged and dropped positions are the same, do nothing
+				if (fromIndex === toIndex) return; // No change if same index
 			
 				// Get the item being moved
 				const movedWebsite = websites[fromIndex];
@@ -265,20 +312,14 @@ document.addEventListener("DOMContentLoaded", (event) => {
 				// Remove the item from its original position
 				websites.splice(fromIndex, 1);
 			
-				// Insert the item at the new position
-				if (fromIndex < toIndex) {
-					// If moving down, insert at the new position after removal
-					websites.splice(toIndex, 0, movedWebsite);
-				} else {
-					// If moving up, insert before the target index
-					websites.splice(toIndex, 0, movedWebsite);
-				}
-			
-				// Re-render the websites after the reorder
+				// Adjust the target index based on whether we're moving up or down
+				let adjustedToIndex = fromIndex < toIndex ? toIndex - 1 : toIndex;
+				
+				websites.splice(adjustedToIndex, 0, movedWebsite);
 				renderWebsites();
 			
-				// If you have a reorderCharts function, call it here
-				reorderCharts(fromIndex, toIndex);
+				// Call reorderCharts with the new adjusted indexes
+				reorderCharts(fromIndex, adjustedToIndex);
 			};
 			
 			// Initial call to render websites when the page loads
