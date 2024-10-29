@@ -135,18 +135,11 @@ document.addEventListener("DOMContentLoaded", (event) => {
 			}
 		}
 	
-		// Log the new order of chart elements (for debugging purposes)
-		console.log('Chart Elements After Move:', Array.from(chartsContainer.children));
-	
 		// Update the data-index attribute for all chart containers after reordering
 		Array.from(chartsContainer.children).forEach((child, i) => {
 			child.setAttribute('data-index', i);
 		});
 	
-		// Optional: If there are layout or rendering issues, trigger a slight delay for layout refresh
-		setTimeout(() => {
-			console.log("Reordering completed.");
-		}, 100);
 	};
 	
 	// Listen for status updates and update the charts
@@ -295,7 +288,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
 					websiteWrapper.appendChild(websiteDiv);
 					// websiteWrapper.appendChild(deleteButton);
 					deleteButtonContainer.appendChild(deleteButton);
-					console.log('Delete button created for URL:', url);
 					websiteWrapper.appendChild(deleteButtonContainer);
 					container.appendChild(websiteWrapper);
 					container.appendChild(websiteAccordianPanel);

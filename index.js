@@ -3,7 +3,6 @@ const http = require('http');
 const socketIo = require('socket.io');
 const axios = require('axios');
 const os = require('os');
-const { log } = require('console');
 
 const app = express();
 const server = http.createServer(app);
@@ -123,13 +122,6 @@ const emitWebsiteHealth = () => {
         
         // Get the last health status (0 or 1) from the websiteStatus object
         const healthStatus = websiteStatus[site].history[websiteStatus[site].history.length - 1] || 0;
-
-        // Log the emitted data to the console for testing
-        // console.log(`Emitting website health for ${site}:`, {
-        //     memoryUsage,
-        //     uptime,
-        //     healthStatus,
-        // });
 
         return {
             site,
