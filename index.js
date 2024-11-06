@@ -3,7 +3,8 @@ const http = require('http');
 const socketIo = require('socket.io');
 const axios = require('axios');
 const os = require('os');
-
+// const externalScript = require('./public/dist/index.html');
+const path = require('path');
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
@@ -145,6 +146,14 @@ app.get('/', (req, res) => {
         systemHealth,
         websites,
     });
+});
+
+app.use(express.static("public/dist"))
+
+app.get('/run', (req, res) => {
+    const pathD = path.join(__dirname, 'public', 'dist', 'index.html');
+    console.log("pathD====",pathD)
+    res.sendFile(pathD);
 });
 
 // API endpoints for websites

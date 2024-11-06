@@ -325,7 +325,15 @@ document.addEventListener("DOMContentLoaded", (event) => {
 	// Call the fetchWebsites function on page load
 	fetchWebsites();
 
-
+	const renderMindMapper = () => {
+		try {
+			// Navigate to another page (URL)
+			window.location.href = 'http://localhost:3000/run';
+		} catch (error) {
+			console.error('Error navigating to the new page:', error.message);
+		}
+	};
+	document.getElementById('Mind-Mapping').addEventListener('click', renderMindMapper);
 	// Handling form submission to check website health
 	document.getElementById('siteHealthForm').addEventListener('submit', async (event) => {
 		event.preventDefault(); // Prevent form submission reload
